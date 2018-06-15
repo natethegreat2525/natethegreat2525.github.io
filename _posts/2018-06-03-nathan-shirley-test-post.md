@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Nathan Shirley"
+title: "First Post"
 date: 2018-06-03
 ---
 
