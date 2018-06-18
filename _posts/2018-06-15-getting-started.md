@@ -23,7 +23,7 @@ Here is the initial index.html file:
 </html>
 ```
 
-To view the result, you can just double click on the file to open it in your preferred browser. This will work for a while but does not work with modules with certain browsers so it is best to use a simple static server. You can use any server you prefer but it is simplest just to install http-server with npm.
+To view the result, you can just double click on the file to open it in your preferred browser. This will work for a while but does not work with modules with certain browsers so it is best to use a simple static server. You can use any server you prefer but it is easiest just to install http-server with npm.
 
 ```
 npm install http-server -g
@@ -48,20 +48,43 @@ let imageData = new ImageData(width, height);
 for (let i = 0; i < width; i++) {
   for (let j = 0; j < height; j++) {
     idx = (i + j * width) * 4;
-    imageData[idx] = 255 * i / width;
-    imageData[idx + 1] = 255 * j / height;
-    imageData[idx + 2] = 0;
-    imageData[idx + 3] = 255;
+    imageData.data[idx] = 255 * i / width;
+    imageData.data[idx + 1] = 255 * j / height;
+    imageData.data[idx + 2] = 0;
+    imageData.data[idx + 3] = 255;
   }
 }
-
 ctx.putImageData(imageData, 0, 0);
 ```
 
-To make this file part of the javascript, add this line to the end of the body in index.html:
+To make this file part of our page, add this line to the end of the body in index.html:
 
 ```html
 <script type="module" src="main.js"></script>
 ```
 
-Now when you refresh your page you should see a red and green gradient. If you don't see any change, try ctrl-f5 to make sure the new files are loaded.
+When you refresh your page you should see a red and green gradient. If you don't see any change, try ctrl-f5 to make sure the new files are loaded.
+
+<canvas id="canvas" width="320" height="240"></canvas>
+
+Now that we can set pixel values, we are ready to start rasterizing triangles!
+
+<script>
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let width = canvas.width;
+let height = canvas.height;
+
+let imageData = new ImageData(width, height);
+
+for (let i = 0; i < width; i++) {
+  for (let j = 0; j < height; j++) {
+    idx = (i + j * width) * 4;
+    imageData.data[idx] = 255 * i / width;
+    imageData.data[idx + 1] = 255 * j / height;
+    imageData.data[idx + 2] = 0;
+    imageData.data[idx + 3] = 255;
+  }
+}
+ctx.putImageData(imageData, 0, 0);
+</script>
