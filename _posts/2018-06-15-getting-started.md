@@ -4,7 +4,7 @@ title: "Software Renderer Tutorial - Getting Started"
 date: 2018-06-15
 ---
 
-Before we can start on the software renderer we have to have a way to draw the pixels to the screen. Since we are using javascript the easiest way to do this is to use a canvas with an ImageData object. If you are doing this tutorial in another language, this is the part that will differ the most between different languages. The goal is just to have an interface that you can send an array of RGB values and make the resulting image appear on the screen.
+Before we can start on the software renderer we have to have a way to draw the pixels to the screen. If you are using another language and already know how to draw pixels to the screen or a buffer, you can skip this page and go to the next section. Since we are using javascript the easiest way to draw directly to the screen is to use a canvas with an ImageData object. The goal is just to have an interface that you can send an array of RGB values and make the resulting image appear on the screen.
 
 To keep it simple, start out by making a new folder for the project that will contain all of our html and js files that will be served statically. The html file only needs to have a canvas element. For this tutorial we will be using a 640x480 canvas. You can use whatever size canvas you want but larger canvases may cause the software renderer to become much slower since the rasterization has to happen for each pixel drawn to the screen.
 
