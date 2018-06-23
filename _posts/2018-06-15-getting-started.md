@@ -59,7 +59,7 @@ ctx.putImageData(imageData, 0, 0);
 
 It is important to note that Javascript canvas and ImageData objects use a slightly non standard (mathematically) set of axes. The upper left corner is (0,0) and the y axis goes down (so down is positive y). The equation to get the index of the red value of a pixel in the code above is (x + (y * width)) * 4. The order of the array values can be visualized as increasing from left to right so each pixel is greater than the one on its left. Then each row is greater than the previous row. The index is multiplied by 4 because there are 4 values for each pixel. Red, Green, Blue, Alpha
 
-### Insert picture of pixel order and axes ###
+![Pixel order and axes](/assets/axes_and_indices.png)
 
 To make this file part of our page, add this line to the end of the body in index.html:
 
