@@ -43,7 +43,7 @@ function doHalfTri(buffer, scanStart, scanEnd, p1, slope1, p2, slope2, baseVerte
 			let frag = fragmentShader(varyingBase, uniforms);
 ```
 
-Congratulations, you can now write vertex shaders. Our vertex shaders will now let us move triangles around in bulk. We could for instance pass all of the triangles of a character into the drawtriangles function and change their position to the position of the character. This is useful, but not the most powerful part of vertex shaders. Another thing we might want to do is calculate a value in the vertex shader and pass it on as a varying. That way calculated values in the vertex shader can be interpolated across the face of a triangle. This can be useful with smoothed lighting and shading or coloring our vertices. Lets change the vertex to contain both attributes and varyings. Attributes will be passed into the vertex shader and the vertex shader will return a vertex with a list of varyings. Some of these may be attributes but others may be computed in the vertex shader. To do this, all we need to do is update the vertex class.
+Congratulations, you can now write vertex shaders. Our vertex shaders will let us move triangles around in bulk. We could for instance pass all of the triangles of a player mesh into the drawtriangles function and change their position to the position of the player. This is useful, but not the only powerful feature of vertex shaders. Another thing we might want to do is calculate a value in the vertex shader and pass it on as a varying. That way, calculated values in the vertex shader can be interpolated across the face of a triangle. This can be useful with smoothed lighting and shading or coloring our vertices. Lets change the vertex to contain both attributes and varyings. Attributes will be passed into the vertex shader and the vertex shader will return a vertex with a list of varyings. Some of these may be attributes but others may be computed in the vertex shader. To do this, all we need to do is update the vertex class.
 
 ```javascript
 export class Vertex {
@@ -55,7 +55,7 @@ export class Vertex {
 }
 ```
 
-Now we can manipulate vertices in the vertex shader, pass new varying values and get those varying values in the fragment shader. But what is the best way to manipulate vertices? It is pretty simple to shift a vertex in the x, y, or z direction, but when we want to do something like rotation, things could get messy. To aide with this we need matrices. A matrix can represent a translation, a rotation, or scaling (and other operations we will get to later). I hope to make it clear by the end of this section and the next how powerful and useful matrices are for graphics. It is standard in graphics to use 4x4 matrices. The matrices operate on vectors by matrix multiplication. Since the rules for matrix multiplication require matrices to be compatible sizes in order to be multiplied (an mxn matrix can only be multiplied by an nxp matrix) we will need to make a Point4 class that gives us a lot of the same functions as our Point3 class. While you are free to exclusively use Point4 and replace previous references to Point3, I will be using Point3 objects in the main.js file and converting them to Point4 objects in the vertex shader. Here is our Point4 class, mostly copy-pasted from the Point3 class:
+Now we can manipulate vertices in the vertex shader, pass new varying values and get those varying values in the fragment shader. But what is the best way to manipulate vertices? It is pretty simple to shift a vertex in the x, y, or z direction, but when we want to do something like rotation, things could get messy. To aid with this we need matrices. A matrix can represent a translation, a rotation, or scaling (and other operations we will get to later). I hope to make it clear by the end of this section and the next how powerful and useful matrices are for graphics. It is standard in graphics to use 4x4 matrices. The matrices operate on vectors by matrix multiplication. Since the rules for matrix multiplication require matrices to be compatible sizes in order to be multiplied (an m by n matrix can only be multiplied by an n by p matrix) we will need to make a Point4 class that gives us a lot of the same functions as our Point3 class but which can also be multiplied as if it were a 4x1 matrix. While you are free to exclusively use Point4 and replace previous references to Point3, I will be using Point3 objects in the main.js file and converting them to Point4 objects in the vertex shader. Here is our Point4 class, mostly copy-pasted from the Point3 class:
 
 ```javascript
 export class Point4 {
@@ -88,7 +88,8 @@ export class Point4 {
 }
 ```
 
-In the "Full source code" section I accidentally used a single | in the Point4 constructor which lead to some weird behavior. `|| 0` simply ensures that the value is not undefined while `| 0` will convert the value to an integer. Using `|| 0` is the intended behavior, as rounding all of our vectors might have unintended consequences!
+
+In the "Full source code" section I accidentally used a single `|` in the Point4 constructor which lead to some weird behavior. `|| 0` simply ensures that the value is not undefined while `| 0` will convert the value to an integer. Using `|| 0` is the intended behavior, as rounding all of our vectors might have unintended consequences!
 
 Now it's time to work on our matrices. Our matrix class will need an array of 16 values since it is a 4x4 matrix. Here is our base matrix class in math.js:
 
@@ -277,6 +278,61 @@ export class Buffer {
 }
 ```
 
+Lets see these new vertex shaders in action! Below I have implemented a simple demo incorporating all of the new features added in this section. The result is a square moving around the screen while growing, shrinking and rotating. A few important points to note about the code below:
 
+- The w value is set to 1 in the vertex shader. Without this, our translation won't work! (We are not done with the w value yet, our software renderer doesn't implement the most useful feature of the w value but we will fix that in the next tutorial)
+- The order in which matrices are multiplied is important! Try switching the order around to see what happens. Matrix operations happen from right to left so in the example below the points are rotated, then scaled, then translated, then the proportion is fixed
+- The proportion matrix fixes the squished proportion of the screen. Now that we have rescaled the size of the buffer so that the upper left is (-1,-1) and the lower right is (1,1) this has squashed our screen coordinates a bit. The proportion matrix ensures that our square looks like a square, and not a skewed rectangle.
+- The software renderer should not change values in the structs. If it does, this may cause problems like only the first frame rendering properly. Make sure you clone values when appropriate to prevent vertex and attribute data from being modified.
+- One other cool side effect of using matrices that you may notice is that we are only passing one matrix in as a uniform, but that matrix is doing 4 operations for us! You can combine as many matrices as you want in any order to form a single matrix that will do all of those operations in the same order!
+
+```javascript
+let val = 0;
+let buffer = new Buffer(ctx, width, height);
+
+let fragShader = (varyings) => {
+	return new Fragment(varyings[0], varyings[1], varyings[2], varyings[3]);
+}
+
+let vertexShader = (vertex, uniforms) => {
+	let newPoint = Point4.fromPoint3(vertex.point, 1);
+	newPoint = uniforms.modelMatrix.multVec4(newPoint);
+	return new Vertex(newPoint, [], vertex.attributes);
+}
+
+let v1 = new Vertex(new Point3(-1, -1, 0), [255, 0, 0, 255]);
+let v2 = new Vertex(new Point3(1, -1, 0), [0, 255, 0, 255]);
+let v3 = new Vertex(new Point3(1, 1, 0), [0, 0, 255, 255]);
+let v4 = new Vertex(new Point3(-1, 1, 0), [0, 0, 0, 255]);
+
+let tri1 = new Triangle(v1, v2, v3);
+let tri2 = new Triangle(v1, v3, v4);
+
+let square = [tri1, tri2];
+
+function mainLoop() {
+	val += .01;
+
+	let xOffs = Math.sin(val*.5);
+	let yOffs = .3*Math.sin(val*2);
+	let size = (Math.sin(val*2.4) + 3) * .1;
+
+	let proportion = Mat4.scale(1, width/height, 1);
+	let translate = Mat4.translate(xOffs, yOffs, 0);
+	let scale = Mat4.scale(size, size, size);
+	let rotate = Mat4.rotateZ(val);
+	let uniforms = {modelMatrix: proportion.mult(translate.mult(scale.mult(rotate)))};
+	drawTriangles(buffer, square, vertexShader, fragShader, uniforms);
+
+	ctx.putImageData(buffer.imageData, 0, 0);
+	buffer.clear();
+}
+```
+
+<canvas id="canvas" width="640" height="480"></canvas>
+
+<button id="start" onclick="toggleRenderer()">Start</button>
+
+<script src="/assets/demos/3_vertex_shader.js" type="text/javascript"></script>
 
 Full source code for this page can be found [here](https://github.com/natethegreat2525/SoftwareRenderer/tree/7f02beb9efe168ce35a1ef2e0e7b00090aad774f).
