@@ -327,6 +327,9 @@ function mainLoop() {
 	ctx.putImageData(buffer.imageData, 0, 0);
 	buffer.clear();
 }
+
+setInterval(mainLoop, 1000/60.0);
+
 ```
 
 <canvas id="canvas" width="640" height="480"></canvas>

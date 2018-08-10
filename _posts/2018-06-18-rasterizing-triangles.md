@@ -220,6 +220,8 @@ function mainLoop() {
 	ctx.putImageData(imageData, 0, 0);
 	imageData.data.fill(0);
 }
+
+setInterval(mainLoop, 1000/60.0);
 ```
 
 <canvas id="canvas" width="640" height="480"></canvas>
