@@ -239,10 +239,14 @@ function doHalfTri(buffer, scanStart, scanEnd, p1, slope1, p2, slope2, baseVerte
 		let high = Math.ceil(sx1);
 		
 		let varyingBase = calculateVaryingBase(baseVertex, varyingSlopes, low, i);
-		for (let j = low; j < high; j++) {
-			let frag = fragmentShader(varyingBase);
-			setPixel(buffer.imageData, j, i, frag.r, frag.g, frag.b, frag.a);
-			incrementVaryingX(varyingBase, varyingSlopes);
+		if (i >= 0 && i < buffer.imageData.height)  {
+			for (let j = low; j < high; j++) {
+				if (j >= 0 && j < buffer.imageData.width)  {
+					let frag = fragmentShader(varyingBase);
+					setPixel(buffer.imageData, j, i, frag.r, frag.g, frag.b, frag.a);
+					incrementVaryingX(varyingBase, varyingSlopes);
+				}
+			}
 		}
 		sx1 += slope1;
 		sx2 += slope2;

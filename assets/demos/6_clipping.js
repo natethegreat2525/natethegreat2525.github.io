@@ -1,35 +1,3 @@
-
-let getTXL = (pA, pB) => {
-	return (pB.x + pB.w) / (pB.x - pA.x + pB.w - pA.w);
-}
-
-let getTYL = (pA, pB) => {
-	return (pB.y + pB.w) / (pB.y - pA.y + pB.w - pA.w);
-}
-
-let getTZL = (pA, pB) => {
-	return (pB.z + pB.w) / (pB.z - pA.z + pB.w - pA.w);
-}
-
-let getTXH = (pA, pB) => {
-	return (pB.w - pB.x) / (-pB.x + pA.x + pB.w - pA.w);
-}
-
-let getTYH = (pA, pB) => {
-	return (pB.w - pB.y) / (-pB.y + pA.y + pB.w - pA.w);
-}
-
-let getTZH = (pA, pB) => {
-	return (pB.w - pB.z) / (-pB.z + pA.z + pB.w - pA.w);
-}
-
-let getX = (p) => p.point.x;
-let getY = (p) => p.point.y;
-let getZ = (p) => p.point.z;
-let getNX = (p) => -p.point.x;
-let getNY = (p) => -p.point.y;
-let getNZ = (p) => -p.point.z;
-
 class Point3 {
 	constructor(x, y, z) {
 		this.x = x;
@@ -98,6 +66,7 @@ class Vertex {
 	clone() {
 		return new Vertex(this.point.clone(), this.attributes, this.varyingArray.slice(0));
 	}
+
 }
 
 class Point4 {
@@ -110,6 +79,10 @@ class Point4 {
 
 	static fromPoint3(p3, w) {
 		return new Point4(p3.x, p3.y, p3.z, w);
+	}
+
+	scale(s) {
+		return new Point4(this.x * s, this.y * s, this.z * s, this.w * s);
 	}
 
 	normalizeW() {
@@ -128,10 +101,6 @@ class Point4 {
 
 	cross2(p) {
 		return this.x * p.y - this.y * p.x;
-	}
-
-	scale(s) {
-		return new Point4(this.x * s, this.y * s, this.z * s, this.w * s);
 	}
 
 	clone() {
@@ -253,6 +222,24 @@ class Mat4 {
 
 }
 
+let getPlaneIntersection = (aX, aW, bX, bW, val) => {
+	return (aX - (aW * val)) / ((bW - aW) * val + aX - bX);
+}
+
+getAPX = (pA, pB) => getPlaneIntersection(pA.x, pA.w, pB.x, pB.w, 1);
+getANX = (pA, pB) => getPlaneIntersection(pA.x, pA.w, pB.x, pB.w, -1);
+getAPY = (pA, pB) => getPlaneIntersection(pA.y, pA.w, pB.y, pB.w, 1);
+getANY = (pA, pB) => getPlaneIntersection(pA.y, pA.w, pB.y, pB.w, -1);
+getAPZ = (pA, pB) => getPlaneIntersection(pA.z, pA.w, pB.z, pB.w, 1);
+getANZ = (pA, pB) => getPlaneIntersection(pA.z, pA.w, pB.z, pB.w, -1);
+
+let getPX = (p) => 1 - p.point.x / p.point.w;
+let getPY = (p) => 1 - p.point.y / p.point.w;
+let getPZ = (p) => 1 - p.point.z / p.point.w;
+let getNX = (p) => p.point.x / p.point.w + 1;
+let getNY = (p) => p.point.y / p.point.w + 1;
+let getNZ = (p) => p.point.z / p.point.w + 1;
+
 let canvas = document.getElementById('canvas');
 let ctx = canvas.getContext('2d');
 let width = canvas.width;
@@ -333,20 +320,19 @@ function toggleRenderer() {
 	}
 }
 
-function clipTriangles(tris, getV, getT, checkW) {
+function clipTriangles(tris, getV, getA) {
 	let ret = [];
 	for (let i = 0; i < tris.length; i++) {
 		let tri = tris[i];
-		//clip for z/w <= -1
-		let p1b = (getV(tri.p1) / tri.p1.point.w <= -1);
-		let p2b = (getV(tri.p2) / tri.p2.point.w <= -1);
-		let p3b = (getV(tri.p3) / tri.p3.point.w <= -1);
+		//values less than 0 are outside the plane
+		let p1b = (getV(tri.p1) < 0);
+		let p2b = (getV(tri.p2) < 0);
+		let p3b = (getV(tri.p3) < 0);
 		
-		if (checkW) {
-			p1b = p1b || tri.p1.point.w <= 0;
-			p2b = p2b || tri.p2.point.w <= 0;
-			p3b = p3b || tri.p3.point.w <= 0;
-		}
+		p1b = p1b || tri.p1.point.w <= 0;
+		p2b = p2b || tri.p2.point.w <= 0;
+		p3b = p3b || tri.p3.point.w <= 0;
+		
 		if (!p1b && !p2b && !p3b) {
 			ret.push(tri);
 			continue;
@@ -354,8 +340,6 @@ function clipTriangles(tris, getV, getT, checkW) {
 		if (p1b && p2b && p3b) {
 			continue;
 		}
-
-		//if we got here, part of the triangle is on the wrong side of the line
 		let twoBehind = false;
 		if (p2b && !p1b) {
 			//rotate left
@@ -376,41 +360,40 @@ function clipTriangles(tris, getV, getT, checkW) {
 		}
 
 		if (twoBehind) {
-			//first two verts are getting clipped
-			//results in one triangle
-			let tA = getT(tri.p1.point, tri.p3.point);
-			let tB = getT(tri.p2.point, tri.p3.point);
-			tri.p1.point = tri.p1.point.scale(tA).add(tri.p3.point.scale(1-tA));
-			tri.p2.point = tri.p2.point.scale(tB).add(tri.p3.point.scale(1-tB));
+			let tA = getA(tri.p1.point, tri.p3.point);
+			let tB = getA(tri.p2.point, tri.p3.point);
+			tri.p1.point = tri.p1.point.scale(1-tA).add(tri.p3.point.scale(tA));
+			tri.p2.point = tri.p2.point.scale(1-tB).add(tri.p3.point.scale(tB));
 			for (let i = 0; i < tri.p1.varyingArray.length; i++) {
-				tri.p1.varyingArray[i] = tri.p1.varyingArray[i] * tA + tri.p3.varyingArray[i] * (1 - tA);
-				tri.p2.varyingArray[i] = tri.p2.varyingArray[i] * tB + tri.p3.varyingArray[i] * (1 - tB);
+				tri.p1.varyingArray[i] = tri.p1.varyingArray[i] * (1 - tA) + tri.p3.varyingArray[i] * tA;
+				tri.p2.varyingArray[i] = tri.p2.varyingArray[i] * (1 - tB) + tri.p3.varyingArray[i] * tB;
 			}
 			ret.push(tri);
 		} else {
-			//only the first vert is getting clipped
-			//results in two triangles
-			let tA = getT(tri.p1.point, tri.p2.point);
-			let tB = getT(tri.p1.point, tri.p3.point);
-			let p12 = tri.p1.point.scale(tA).add(tri.p2.point.scale(1-tA));
-			let p13 = tri.p1.point.scale(tB).add(tri.p3.point.scale(1-tB));
+			let tA = getA(tri.p1.point, tri.p2.point);
+			let tB = getA(tri.p1.point, tri.p3.point);
+			
+			let p12 = tri.p1.point.scale(1-tA).add(tri.p2.point.scale(tA));
+			let p13 = tri.p1.point.scale(1-tB).add(tri.p3.point.scale(tB));
 			let v12var = new Array(tri.p1.varyingArray.length);
 			let v13var = new Array(tri.p1.varyingArray.length);
 			for (let i = 0; i < tri.p1.varyingArray.length; i++) {
-				v12var[i] = tri.p1.varyingArray[i] * tA + tri.p2.varyingArray[i] * (1 - tA);
-				v13var[i] = tri.p1.varyingArray[i] * tB + tri.p3.varyingArray[i] * (1 - tB);
+				v12var[i] = tri.p1.varyingArray[i] * (1 - tA) + tri.p2.varyingArray[i] * tA;
+				v13var[i] = tri.p1.varyingArray[i] * (1 - tB) + tri.p3.varyingArray[i] * tB;
 			}
 			let v12 = new Vertex(p12, null, v12var);
 			let v13 = new Vertex(p13, null, v13var);
+			
 			let tri1 = new Triangle(v12.clone(), tri.p2.clone(), tri.p3.clone());
 			let tri2 = new Triangle(v12, tri.p3.clone(), v13);
 			
 			ret.push(tri1, tri2);
-		}
-	}
-	return ret;
-}
 
+		}
+
+	}
+	return ret
+}
 function drawTriangles(buffer, triangles, vertexShader, fragmentShader, uniforms) {
 	for (let i = 0; i < triangles.length; i++) {
 		let t = triangles[i];
@@ -419,20 +402,21 @@ function drawTriangles(buffer, triangles, vertexShader, fragmentShader, uniforms
 		tNext.p2 = vertexShader(t.p2, uniforms);
 		tNext.p3 = vertexShader(t.p3, uniforms);
 		
-		let tris = clipTriangles([tNext], getZ, getTZL, true);
-		tris = clipTriangles(tris, getNZ, getTZH);
+		let tris = clipTriangles([tNext], getNZ, getANZ, true);
+		tris = clipTriangles(tris, getPZ, getAPZ);
 		
-		tris = clipTriangles(tris, getX, getTXL);
-		tris = clipTriangles(tris, getNX, getTXH);
+		tris = clipTriangles(tris, getPX, getAPX);
+		tris = clipTriangles(tris, getNX, getANX);
 		
-		tris = clipTriangles(tris, getNY, getTYH);
-		tris = clipTriangles(tris, getY, getTYL);
+		tris = clipTriangles(tris, getPY, getAPY);
+		tris = clipTriangles(tris, getNY, getANY);
 		
 		for (let j = 0; j < tris.length; j++) {
 			drawTriangle(buffer, tris[j], fragmentShader, uniforms);
 		}
 	}
 }
+
 
 function calculateVaryingSlope(t) {
 	let v1 = t.p1.varyingArray;
@@ -560,19 +544,23 @@ function doHalfTri(buffer, scanStart, scanEnd, p1, slope1, p2, slope2, baseVerte
 		let high = Math.ceil(sx1);
 		
 		let varyingBase = calculateVaryingBase(baseVertex, varyingSlopes, low, i);
-		for (let j = low; j < high; j++) {
-			let frag = fragmentShader(varyingBase, uniforms);
-			if (frag && frag.a !== 0) {
-				let depth = varyingBase[varyingBase.length - 2];
-				if (depth > -1 && depth < 1) {
-					let idx = j + i * buffer.imageData.width;
-					if (depth <= buffer.depth[idx]) {
-						buffer.depth[idx] = depth;
-						setPixelAlphaBlend(buffer.imageData, j, i, frag.r, frag.g, frag.b, frag.a);
+		if (i >= 0 && i < buffer.imageData.height)  {
+			for (let j = low; j < high; j++) {
+				if (j >= 0 && j < buffer.imageData.width)  {
+					let frag = fragmentShader(varyingBase, uniforms);
+					if (frag && frag.a !== 0) {
+						let depth = varyingBase[varyingBase.length - 2];
+						if (depth > -1 && depth < 1) {
+							let idx = j + i * buffer.imageData.width;
+							if (depth <= buffer.depth[idx]) {
+								buffer.depth[idx] = depth;
+								setPixelAlphaBlend(buffer.imageData, j, i, frag.r, frag.g, frag.b, frag.a);
+							}
+						}
 					}
 				}
+				incrementVaryingX(varyingBase, varyingSlopes);
 			}
-			incrementVaryingX(varyingBase, varyingSlopes);
 		}
 		sx1 += slope1;
 		sx2 += slope2;

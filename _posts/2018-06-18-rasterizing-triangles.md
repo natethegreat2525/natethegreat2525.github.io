@@ -61,7 +61,7 @@ function drawTriangle(data, p1, p2, p3, r, g, b, a) {
 The following code rotates the vertices so that p1 has the highest y value. Notice that the clockwise or counterclockwise order of the points is maintained in the process.
 
 ```javascript
-	if (p2.y < p1.y && p2.y < p3.y) {
+	if (p2.y < p1.y && p2.y <= p3.y) {
 		let tmp = p1;
 		p1 = p2;
 		p2 = p3;
@@ -135,8 +135,12 @@ function doHalfTri(data, scanStart, scanEnd, p1, slope1, p2, slope2, r, g, b, a)
 	for (let i = scanStart; i < scanEnd; i++) {
 		let low = Math.ceil(sx2);
 		let high = Math.ceil(sx1);
-		for (let j = low; j < high; j++) {
-			setPixel(data, j, i, r, g, b, a);
+		if (i >= 0 && i < data.height)  {
+			for (let j = low; j < high; j++) {
+				if (j >= 0 && j < data.width)  {
+					setPixel(data, j, i, r, g, b, a);
+				}
+			}
 		}
 		sx1 += slope1;
 		sx2 += slope2;
