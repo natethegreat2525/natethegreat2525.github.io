@@ -1,11 +1,16 @@
 ---
-layout: default
-title: Nathan Shirley's Blog
+layout: page
+title: Home
 ---
-<h1>{{ page.title }}</h1>
-<ul class="posts">
-	{% for post in site.posts %}
-	<li><span>{{ post.date | date_to_string }}</span> » <a href="{{ post.url }}" title="{{ post.title }}">{{ post.title }}</a></li>
-	{% endfor %}
-</ul>
 
+
+<div class="projectflex">
+	<a href="/projects/software_renderer/main"><img src="assets/images/software_renderer_thumb.png"/><h3>Software Renderer</h3></a>
+	<a href="https://halite.io/user/?user_id=6414"><img src="assets/images/halite_thumb.png"/><h3>Halite 3</h3></a>
+	<a href="/projects/santas_slay"><img src="assets/images/santas_slay_thumb.png"/><h3>Santa's Slay</h3></a>
+	<a href="https://www.github.com/natethegreat2525/AdventOfCode2018"><img src="assets/images/AOC_thumb.png"/><h3>Advent of Code 2018</h3></a>
+	<a href="/projects/adventure_defense"><img src="assets/images/adventure_defense_thumb.png"/><h3>Adventure Defense</h3></a>
+	<a href="https://github.com/natethegreat2525/VoxelDrawer"><img src="assets/images/voxel_editor_thumb.png"/><h3>Voxel Editor</h3></a>
+	<a href="https://github.com/natethegreat2525/CreatureIsland"><img src="assets/images/creature_island_thumb.png"/><h3>Creature Island</h3></a>
+	<a href="/projects/gaggle"><img src="assets/images/gaggle.png"/><h3>Gaggle</h3></a>
+</div>
